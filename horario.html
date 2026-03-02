@@ -25,7 +25,7 @@
   .container { max-width: 600px; margin: 0 auto; }
 
   /* Header */
-  header { text-align: center; margin-bottom: 18px; }
+  header { text-align: center; margin-bottom: 18px; position: relative; }
   header h1 { font-size: 1.4rem; font-weight: 700; color: #111827; margin-bottom: 2px; }
   .date-display { font-size: 0.82rem; color: #6b7280; }
   .streak-badge {
@@ -34,6 +34,84 @@
     color: #fff; font-size: 0.72rem; font-weight: 700; border-radius: 20px;
   }
   .streak-badge.hidden { display: none; }
+
+  /* Sync button */
+  .sync-row {
+    display: flex; align-items: center; justify-content: center; gap: 6px; margin-top: 6px;
+  }
+  .sync-btn {
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 3px 10px; border: 1.5px solid #d1d5db; background: #fff;
+    color: #6b7280; font-size: 0.68rem; font-weight: 600; border-radius: 16px;
+    cursor: pointer; transition: all 0.2s;
+  }
+  .sync-btn:hover { border-color: #2563eb; color: #2563eb; }
+  .sync-dot {
+    width: 7px; height: 7px; border-radius: 50%; background: #9ca3af;
+    display: inline-block; transition: background 0.3s;
+  }
+  .sync-dot.synced { background: #10b981; }
+  .sync-dot.pending { background: #f59e0b; }
+  .sync-dot.error { background: #ef4444; }
+
+  /* Sync modal */
+  .sync-modal-overlay {
+    position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.4); z-index: 200;
+    display: none; align-items: center; justify-content: center;
+  }
+  .sync-modal-overlay.visible { display: flex; }
+  .sync-modal {
+    background: #fff; border-radius: 14px; padding: 22px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.15); max-width: 360px; width: 92%;
+    text-align: center;
+  }
+  .sync-modal h3 { font-size: 0.95rem; margin-bottom: 6px; color: #111827; }
+  .sync-modal p { font-size: 0.78rem; color: #6b7280; margin-bottom: 12px; line-height: 1.4; }
+  .sync-url-box {
+    width: 100%; padding: 10px; border: 1.5px solid #e5e7eb; border-radius: 8px;
+    font-size: 0.72rem; font-family: monospace; background: #f9fafb;
+    word-break: break-all; text-align: left; margin-bottom: 10px; color: #374151;
+    min-height: 50px; resize: none;
+  }
+  .sync-modal .modal-btns { display: flex; gap: 8px; justify-content: center; }
+  .sync-modal .modal-btns button {
+    padding: 8px 18px; border-radius: 8px; font-size: 0.82rem;
+    font-weight: 600; cursor: pointer; border: none;
+  }
+  .sync-modal .btn-copy { background: #2563eb; color: #fff; }
+  .sync-modal .btn-close-modal { background: #e5e7eb; color: #6b7280; }
+  .sync-copied { color: #10b981; font-size: 0.75rem; font-weight: 600; margin-top: 6px; display: none; }
+
+  /* Move date modal */
+  .move-date-overlay {
+    position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.4); z-index: 200;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .move-date-modal {
+    background: #fff; border-radius: 14px; padding: 20px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.15); max-width: 320px; width: 90%;
+    text-align: center;
+  }
+  .move-date-modal h3 { font-size: 0.95rem; margin-bottom: 12px; color: #111827; }
+  .move-date-modal input[type="date"] {
+    width: 100%; padding: 10px; border: 1.5px solid #e5e7eb;
+    border-radius: 8px; font-size: 0.9rem; font-family: inherit;
+    margin-bottom: 12px;
+  }
+  .move-date-modal .modal-btns { display: flex; gap: 8px; justify-content: center; }
+  .move-date-modal .modal-btns button {
+    padding: 8px 18px; border-radius: 8px; font-size: 0.82rem;
+    font-weight: 600; cursor: pointer; border: none;
+  }
+  .move-date-modal .btn-confirm { background: #2563eb; color: #fff; }
+  .move-date-modal .btn-cancel { background: #e5e7eb; color: #6b7280; }
+  .task-move-date {
+    flex-shrink: 0; border: none; background: none; color: #d1d5db;
+    font-size: 0.85rem; cursor: pointer; padding: 2px; border-radius: 3px;
+  }
+  .task-move-date:hover { color: #2563eb; }
 
   /* Bottom nav */
   .bottom-nav {
@@ -359,7 +437,24 @@
     <h1 id="pageTitle">Mi Horario</h1>
     <div class="date-display" id="dateDisplay"></div>
     <div class="streak-badge hidden" id="streakBadge">&#x1F525; <span id="streakCount">0</span> dias de racha</div>
+    <div class="sync-row">
+      <button class="sync-btn" id="btnSync"><span class="sync-dot" id="syncDot"></span> Sincronizar</button>
+    </div>
   </header>
+
+  <!-- Sync modal -->
+  <div class="sync-modal-overlay" id="syncModalOverlay">
+    <div class="sync-modal">
+      <h3>&#x1F517; Usar en otro dispositivo</h3>
+      <p>Copia esta URL y abrela desde tu celular, otra computadora, o cualquier navegador. Tus datos se sincronizaran automaticamente.</p>
+      <textarea class="sync-url-box" id="syncUrlBox" readonly></textarea>
+      <div class="modal-btns">
+        <button class="btn-close-modal" id="btnCloseSyncModal">Cerrar</button>
+        <button class="btn-copy" id="btnCopyUrl">Copiar URL</button>
+      </div>
+      <div class="sync-copied" id="syncCopied">&#x2705; Copiado!</div>
+    </div>
+  </div>
 
   <!-- ═══ HORARIO ═══ -->
   <div class="view active" id="viewSchedule">
@@ -485,7 +580,45 @@
   <button class="nav-btn" data-view="viewHistory"><span class="nav-icon">&#x1F4CA;</span>Historial</button>
 </nav>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
+/* ═══ SUPABASE CONFIG ═══ */
+const SUPABASE_URL='https://pnuuuajkybjnwabugyhu.supabase.co';
+const SUPABASE_ANON_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBudXV1YWpreWJqbndhYnVneWh1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI0NzE0NjMsImV4cCI6MjA4ODA0NzQ2M30.Q6LhoxNneA224lvbt0Nn8JVSALgBsmicshXOSd_KQzo';
+
+let sb=null;
+try{sb=window.supabase?window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY):null;}catch(e){console.warn('Supabase init failed:',e);}
+
+function getUserToken(){
+  const h=window.location.hash;
+  const m=h.match(/token=([0-9a-f-]{36})/i);
+  if(m){localStorage.setItem('user_token',m[1]);return m[1];}
+  const stored=localStorage.getItem('user_token');
+  if(stored)return stored;
+  const nt=crypto.randomUUID();
+  localStorage.setItem('user_token',nt);
+  return nt;
+}
+const USER_TOKEN=getUserToken();
+
+/* ═══ SYNC STATUS ═══ */
+let syncStatus='synced';
+function setSyncStatus(s){
+  syncStatus=s;
+  const dot=document.getElementById('syncDot');
+  if(dot){dot.className='sync-dot '+s;}
+}
+function markDirty(key){
+  const d=load('_dirty',[]);
+  if(!d.includes(key)){d.push(key);save('_dirty',d);}
+  setSyncStatus('pending');
+}
+function clearDirty(key){
+  const d=load('_dirty',[]);
+  save('_dirty',d.filter(x=>x!==key));
+  if(load('_dirty',[]).length===0)setSyncStatus('synced');
+}
+
 /* ═══ DATA ═══ */
 const DAYS_SHORT = ['Dom','Lun','Mar','Mie','Jue','Vie','Sab'];
 const BLOCK_LABELS = {
@@ -542,10 +675,8 @@ function todayStr() { return new Date().toISOString().slice(0,10); }
 function dateStr(d) { return d.toISOString().slice(0,10); }
 function getWeekNum(d) { const j=new Date(d.getFullYear(),0,1); return Math.ceil(((d-j)/864e5+j.getDay()+1)/7); }
 function getContentDay() {
-  // Returns which day of the week is the content day (1-5), or 0 if disabled
   const custom=localStorage.getItem('content-day');
   if(custom!==null) return parseInt(custom);
-  // Default: Monday on even weeks
   return getWeekNum(new Date())%2===0 ? 1 : 0;
 }
 function isContentDay(di) {
@@ -572,11 +703,220 @@ function getCurIdx(sch) {
 }
 function esc(s){const d=document.createElement('div');d.textContent=s;return d.innerHTML;}
 
+/* ═══ SUPABASE SYNC LAYER ═══ */
+async function syncChecksToSB(dateS,dayOfWeek,checks){
+  if(!sb)return;
+  try{
+    await sb.from('schedule_checks').upsert({user_token:USER_TOKEN,date:dateS,day_of_week:dayOfWeek,checks},
+      {onConflict:'user_token,date'});
+    clearDirty('h-'+dateS+'-'+dayOfWeek);
+  }catch(e){console.warn('sync checks fail:',e);markDirty('h-'+dateS+'-'+dayOfWeek);}
+}
+
+let noteTimer=null;
+function syncNoteToDB(dateS,text){
+  if(!sb)return;
+  clearTimeout(noteTimer);
+  noteTimer=setTimeout(async()=>{
+    try{
+      await sb.from('daily_notes').upsert({user_token:USER_TOKEN,date:dateS,note:text},
+        {onConflict:'user_token,date'});
+    }catch(e){console.warn('sync note fail:',e);}
+  },1000);
+}
+
+async function syncTasksToDB(tasks,dateS){
+  if(!sb)return;
+  try{
+    const rows=tasks.map((t,i)=>({
+      user_token:USER_TOKEN,task_id:t.id,date:dateS,text:t.text,
+      urgency:t.urgency||'proactiva',block:t.block||'work',
+      time_start:t.timeStart||'',time_end:t.timeEnd||'',
+      done:t.done||false,sort_order:i,
+      created_at:t.createdAt||'',completed_at:t.completedAt||null
+    }));
+    if(rows.length>0){
+      await sb.from('tasks').upsert(rows,{onConflict:'user_token,task_id'});
+    }
+    // Delete removed tasks for this date
+    const localIds=tasks.map(t=>t.id);
+    const{data:remote}=await sb.from('tasks').select('task_id')
+      .eq('user_token',USER_TOKEN).eq('date',dateS);
+    if(remote){
+      const toDel=remote.filter(r=>!localIds.includes(r.task_id)).map(r=>r.task_id);
+      if(toDel.length>0) await sb.from('tasks').delete().eq('user_token',USER_TOKEN).in('task_id',toDel);
+    }
+    clearDirty('tasks-'+dateS);
+  }catch(e){console.warn('sync tasks fail:',e);markDirty('tasks-'+dateS);}
+}
+
+async function syncEventsToDB(events){
+  if(!sb)return;
+  try{
+    const rows=events.map(e=>({
+      user_token:USER_TOKEN,event_id:e.id,title:e.title,date:e.date,
+      time_start:e.timeStart||'',time_end:e.timeEnd||'',notes:e.notes||''
+    }));
+    if(rows.length>0){
+      await sb.from('events').upsert(rows,{onConflict:'user_token,event_id'});
+    }
+    const localIds=events.map(e=>e.id);
+    const{data:remote}=await sb.from('events').select('event_id').eq('user_token',USER_TOKEN);
+    if(remote){
+      const toDel=remote.filter(r=>!localIds.includes(r.event_id)).map(r=>r.event_id);
+      if(toDel.length>0) await sb.from('events').delete().eq('user_token',USER_TOKEN).in('event_id',toDel);
+    }
+    clearDirty('events');
+  }catch(e){console.warn('sync events fail:',e);markDirty('events');}
+}
+
+async function syncSettingToDB(key,value){
+  if(!sb)return;
+  try{
+    await sb.from('settings').upsert({user_token:USER_TOKEN,key,value:String(value)},
+      {onConflict:'user_token,key'});
+  }catch(e){console.warn('sync setting fail:',e);}
+}
+
+/* ═══ INITIAL SYNC (pull from Supabase) ═══ */
+async function initialSync(){
+  if(!sb){setSyncStatus('error');return;}
+  setSyncStatus('pending');
+  try{
+    const cutoff=new Date();cutoff.setDate(cutoff.getDate()-60);
+    const cutoffStr=dateStr(cutoff);
+
+    // Settings
+    const{data:settings}=await sb.from('settings').select('*').eq('user_token',USER_TOKEN);
+    if(settings)settings.forEach(s=>localStorage.setItem(s.key,s.value));
+
+    // Schedule checks
+    const{data:checks}=await sb.from('schedule_checks').select('*')
+      .eq('user_token',USER_TOKEN).gte('date',cutoffStr);
+    if(checks)checks.forEach(c=>save(`h-${c.date}-${c.day_of_week}`,c.checks));
+
+    // Notes
+    const{data:notes}=await sb.from('daily_notes').select('*')
+      .eq('user_token',USER_TOKEN).gte('date',cutoffStr);
+    if(notes)notes.forEach(n=>localStorage.setItem('note-'+n.date,n.note));
+
+    // Tasks
+    const{data:tasks}=await sb.from('tasks').select('*')
+      .eq('user_token',USER_TOKEN).gte('date',cutoffStr)
+      .order('sort_order',{ascending:true});
+    if(tasks){
+      const byDate={};
+      tasks.forEach(t=>{
+        if(!byDate[t.date])byDate[t.date]=[];
+        byDate[t.date].push({
+          id:t.task_id,text:t.text,urgency:t.urgency,block:t.block,
+          timeStart:t.time_start,timeEnd:t.time_end,done:t.done,
+          createdAt:t.created_at,completedAt:t.completed_at
+        });
+      });
+      Object.entries(byDate).forEach(([d,arr])=>save('tasks-'+d,arr));
+    }
+
+    // Events
+    const{data:events}=await sb.from('events').select('*').eq('user_token',USER_TOKEN);
+    if(events){
+      save('events',events.map(e=>({
+        id:e.event_id,title:e.title,date:e.date,
+        timeStart:e.time_start,timeEnd:e.time_end,notes:e.notes
+      })));
+    }
+
+    // Retry dirty
+    await retryDirty();
+
+    setSyncStatus('synced');
+    // Re-render
+    renderSV();
+    if(curView==='viewTasks')renderTasks();
+    if(curView==='viewCalendar')renderCalendar();
+    if(curView==='viewHistory')renderHistory();
+  }catch(e){
+    console.warn('Initial sync failed:',e);
+    setSyncStatus('error');
+  }
+}
+
+async function retryDirty(){
+  const dirty=load('_dirty',[]);
+  if(!dirty.length)return;
+  for(const key of[...dirty]){
+    try{
+      if(key.startsWith('tasks-')){
+        const ds=key.replace('tasks-','');
+        await syncTasksToDB(loadTasks(ds),ds);
+      }else if(key==='events'){
+        await syncEventsToDB(loadEvents());
+      }else if(key.startsWith('h-')){
+        const m=key.match(/h-(\d{4}-\d{2}-\d{2})-(\d)/);
+        if(m)await syncChecksToSB(m[1],parseInt(m[2]),load(key,{}));
+      }
+    }catch(e){/* still failing */}
+  }
+}
+
+/* ═══ MIGRATION (localStorage -> Supabase, one-time) ═══ */
+async function migrateToSupabase(){
+  if(!sb||localStorage.getItem('_migrated_sb'))return;
+  try{
+    const keys=Object.keys(localStorage);
+    // Content day
+    const cd=localStorage.getItem('content-day');
+    if(cd!==null)await syncSettingToDB('content-day',cd);
+    // Schedule checks
+    keys.filter(k=>/^h-\d{4}-\d{2}-\d{2}-\d$/.test(k)).forEach(async k=>{
+      const m=k.match(/^h-(\d{4}-\d{2}-\d{2})-(\d)$/);
+      if(m){const ch=load(k,{});if(Object.keys(ch).length>0)await syncChecksToSB(m[1],parseInt(m[2]),ch);}
+    });
+    // Notes
+    keys.filter(k=>/^note-\d{4}-\d{2}-\d{2}$/.test(k)).forEach(async k=>{
+      const ds=k.replace('note-',''),note=localStorage.getItem(k);
+      if(note)await sb.from('daily_notes').upsert({user_token:USER_TOKEN,date:ds,note},{onConflict:'user_token,date'});
+    });
+    // Tasks
+    keys.filter(k=>/^tasks-\d{4}-\d{2}-\d{2}$/.test(k)).forEach(async k=>{
+      const ds=k.replace('tasks-',''),tasks=load(k,[]);
+      if(tasks.length>0)await syncTasksToDB(tasks,ds);
+    });
+    // Events
+    const evts=loadEvents();
+    if(evts.length>0)await syncEventsToDB(evts);
+    localStorage.setItem('_migrated_sb','1');
+  }catch(e){console.warn('Migration failed, will retry:',e);}
+}
+
 /* ═══ STATE ═══ */
 let selDay=new Date().getDay(), curView='viewSchedule';
 let selUrgency='proactiva', selBlock='work';
 let calYear=new Date().getFullYear(), calMonth=new Date().getMonth(), calSelDate=todayStr();
 let dragSrcId=null;
+
+/* ═══ SYNC MODAL ═══ */
+document.getElementById('btnSync').addEventListener('click',()=>{
+  const base=window.location.origin+window.location.pathname;
+  document.getElementById('syncUrlBox').value=base+'#token='+USER_TOKEN;
+  document.getElementById('syncModalOverlay').classList.add('visible');
+  document.getElementById('syncCopied').style.display='none';
+});
+document.getElementById('btnCloseSyncModal').addEventListener('click',()=>{
+  document.getElementById('syncModalOverlay').classList.remove('visible');
+});
+document.getElementById('syncModalOverlay').addEventListener('click',e=>{
+  if(e.target===document.getElementById('syncModalOverlay'))
+    document.getElementById('syncModalOverlay').classList.remove('visible');
+});
+document.getElementById('btnCopyUrl').addEventListener('click',()=>{
+  const box=document.getElementById('syncUrlBox');
+  box.select();
+  navigator.clipboard.writeText(box.value).then(()=>{
+    document.getElementById('syncCopied').style.display='block';
+    setTimeout(()=>document.getElementById('syncCopied').style.display='none',2000);
+  });
+});
 
 /* ═══ NAV ═══ */
 document.querySelectorAll('.nav-btn').forEach(b=>{
@@ -614,9 +954,7 @@ function renderSV(){
 
   const sch=getSchedule(selDay),checks=load(sKey('h',selDay),{}),td=new Date().getDay(),ci=selDay===td?getCurIdx(sch):-1;
   const evts=loadEventsForDate(todayStr());
-  // Get tasks with time (only for today's view)
   const tasksWithTime=(selDay===td)?loadTasks().filter(t=>t.timeStart).sort((a,b)=>pTime(a.timeStart)-pTime(b.timeStart)):[];
-  // Merge all extra items (events + tasks) sorted by start time
   const extras=[];
   evts.forEach(ev=>extras.push({type:'event',start:pTime(ev.timeStart||'00:00'),data:ev}));
   tasksWithTime.forEach(t=>extras.push({type:'task',start:pTime(t.timeStart||'00:00'),data:t}));
@@ -629,21 +967,16 @@ function renderSV(){
   for(let i=0;i<sch.length;i++){
     const schStart=pTime(sch[i].time.split(' - ')[0]);
     const schEnd=pTime((sch[i].time.split(' - ')[1])||'23:59');
-    // Insert extras that start before this schedule block
     while(exIdx<extras.length && extras[exIdx].start<schStart){
-      html+=renderExtraItem(extras[exIdx]);
-      exIdx++;
+      html+=renderExtraItem(extras[exIdx]);exIdx++;
     }
     const ck=checks[i]?'checked':'', cr=i===ci?'current':'';
     const desc=sch[i].desc?`<div class="activity-desc">${sch[i].desc}</div>`:'';
     html+=`<div class="schedule-item ${ck} ${cr}" data-cat="${sch[i].cat}" data-index="${i}"><div class="checkbox-wrapper"><span class="check-icon">\u2713</span></div><span class="activity-emoji">${sch[i].emoji}</span><div class="activity-info"><div class="activity-name">${sch[i].name}</div><div class="activity-time">${sch[i].time}</div>${desc}</div><span class="current-badge">AHORA</span></div>`;
-    // Insert extras that fall within this schedule block
     while(exIdx<extras.length && extras[exIdx].start>=schStart && extras[exIdx].start<schEnd){
-      html+=renderExtraItem(extras[exIdx]);
-      exIdx++;
+      html+=renderExtraItem(extras[exIdx]);exIdx++;
     }
   }
-  // Remaining extras after all schedule blocks
   while(exIdx<extras.length){ html+=renderExtraItem(extras[exIdx]); exIdx++; }
   el.innerHTML=html;
 
@@ -657,7 +990,9 @@ function renderSV(){
     }
   }
   el.querySelectorAll('.schedule-item').forEach(it=>it.addEventListener('click',()=>{
-    const idx=+it.dataset.index,ch=load(sKey('h',selDay),{});ch[idx]=!ch[idx];save(sKey('h',selDay),ch);renderSV();
+    const idx=+it.dataset.index,ch=load(sKey('h',selDay),{});ch[idx]=!ch[idx];save(sKey('h',selDay),ch);
+    syncChecksToSB(todayStr(),selDay,ch);
+    renderSV();
   }));
 
   const total=sch.length,done=Object.values(checks).filter(Boolean).length,pct=total?Math.round(done/total*100):0;
@@ -673,8 +1008,17 @@ function calcStreak(){
   for(let i=0;i<365;i++){const ds=dateStr(d),di=d.getDay(),sch=getScheduleForDate(d),ch=load(`h-${ds}-${di}`,{}),t=sch.length,dn=Object.values(ch).filter(Boolean).length;if(t>0&&dn===t)s++;else break;d.setDate(d.getDate()-1);}
   return s;
 }
-document.getElementById('dailyNoteArea').addEventListener('input',e=>localStorage.setItem('note-'+todayStr(),e.target.value));
-document.getElementById('btnReset').addEventListener('click',()=>{if(confirm('Esto borra todos los checks del horario de hoy. Las tareas NO se borran. Continuar?')){save(sKey('h',selDay),{});renderSV();}});
+document.getElementById('dailyNoteArea').addEventListener('input',e=>{
+  localStorage.setItem('note-'+todayStr(),e.target.value);
+  syncNoteToDB(todayStr(),e.target.value);
+});
+document.getElementById('btnReset').addEventListener('click',()=>{
+  if(confirm('Esto borra todos los checks del horario de hoy. Las tareas NO se borran. Continuar?')){
+    save(sKey('h',selDay),{});
+    syncChecksToSB(todayStr(),selDay,{});
+    renderSV();
+  }
+});
 document.getElementById('toggleContentBtn').addEventListener('click',()=>{
   const picker=document.getElementById('contentDayPicker');
   picker.style.display=picker.style.display==='none'?'block':'none';
@@ -682,6 +1026,7 @@ document.getElementById('toggleContentBtn').addEventListener('click',()=>{
 document.querySelectorAll('.content-day-opt').forEach(btn=>{
   btn.addEventListener('click',()=>{
     localStorage.setItem('content-day',btn.dataset.val);
+    syncSettingToDB('content-day',btn.dataset.val);
     document.getElementById('contentDayPicker').style.display='none';
     renderSV();
   });
@@ -690,7 +1035,11 @@ document.querySelectorAll('.content-day-opt').forEach(btn=>{
 /* ═══ TASKS ═══ */
 function tasksKey(d){return 'tasks-'+(d||todayStr());}
 function loadTasks(d){return load(tasksKey(d),[]);}
-function saveTasks(t,d){save(tasksKey(d),t);}
+function saveTasks(t,d){
+  const ds=d||todayStr();
+  save('tasks-'+ds,t);
+  syncTasksToDB(t,ds);
+}
 
 // Chips
 document.querySelectorAll('#urgencyChips .chip').forEach(c=>c.addEventListener('click',()=>{
@@ -722,6 +1071,52 @@ function moveTask(id,dir){
   saveTasks([...pending,...done]);renderTasks();
 }
 
+/* ═══ MOVE TASK TO ANY DATE ═══ */
+function showMoveTaskModal(taskId){
+  const overlay=document.createElement('div');
+  overlay.className='move-date-overlay';
+  overlay.innerHTML=`
+    <div class="move-date-modal">
+      <h3>&#x1F4C5; Mover tarea a otro dia</h3>
+      <input type="date" id="moveTargetDate" value="${todayStr()}">
+      <div class="modal-btns">
+        <button class="btn-cancel" id="moveCancelBtn">Cancelar</button>
+        <button class="btn-confirm" id="moveConfirmBtn">Mover</button>
+      </div>
+    </div>`;
+  document.body.appendChild(overlay);
+  document.getElementById('moveTargetDate').focus();
+  document.getElementById('moveCancelBtn').addEventListener('click',()=>overlay.remove());
+  overlay.addEventListener('click',e=>{if(e.target===overlay)overlay.remove();});
+  document.getElementById('moveConfirmBtn').addEventListener('click',async()=>{
+    const targetDate=document.getElementById('moveTargetDate').value;
+    if(!targetDate){overlay.remove();return;}
+    const sourceDate=todayStr();
+    if(targetDate===sourceDate){overlay.remove();return;}
+    const sourceTasks=loadTasks(sourceDate);
+    const taskIndex=sourceTasks.findIndex(t=>t.id===taskId);
+    if(taskIndex===-1){overlay.remove();return;}
+    const[task]=sourceTasks.splice(taskIndex,1);
+    // Save source without the task
+    save('tasks-'+sourceDate,sourceTasks);
+    syncTasksToDB(sourceTasks,sourceDate);
+    // Add to target
+    const targetTasks=loadTasks(targetDate);
+    targetTasks.push(task);
+    save('tasks-'+targetDate,targetTasks);
+    syncTasksToDB(targetTasks,targetDate);
+    // In Supabase, also update the date column directly
+    if(sb){
+      try{await sb.from('tasks').update({date:targetDate,sort_order:targetTasks.length-1})
+        .eq('user_token',USER_TOKEN).eq('task_id',taskId);}catch(e){
+        markDirty('tasks-'+sourceDate);markDirty('tasks-'+targetDate);
+      }
+    }
+    overlay.remove();
+    renderTasks();renderSV();
+  });
+}
+
 function renderTasks(){
   const tasks=loadTasks(),pending=tasks.filter(t=>!t.done),done=tasks.filter(t=>t.done);
   const pEl=document.getElementById('taskListPending'),dEl=document.getElementById('taskListDone');
@@ -734,13 +1129,13 @@ function renderTasks(){
 }
 
 function taskHTML(t,num,isDone){
-  // Backwards compat: old tasks had 'cat' instead of 'urgency' and no 'block'
   const urgency=t.urgency||t.cat||'proactiva';
   const block=t.block||'work';
   const timeLabel=(t.timeStart||t.timeEnd)?`<span class="task-time-label">${t.timeStart||'?'} - ${t.timeEnd||'?'}</span>`:'';
   const blockLabel=BLOCK_LABELS[block]||block;
   const dragH=isDone?'':`<span class="drag-handle" data-id="${t.id}" draggable="true">&#x2630;</span>`;
   const numH=isDone?'':`<span class="task-priority">${num}</span>`;
+  const moveH=isDone?'':`<button class="task-move-date" data-id="${t.id}" title="Mover a otro dia">&#x1F4C5;</button>`;
   const arrows=isDone?'':`<span style="display:flex;flex-direction:column;gap:0;flex-shrink:0">
     <button class="task-move-btn" data-id="${t.id}" data-dir="-1" style="border:none;background:none;cursor:pointer;font-size:0.6rem;color:#9ca3af;padding:0;line-height:1">&#x25B2;</button>
     <button class="task-move-btn" data-id="${t.id}" data-dir="1" style="border:none;background:none;cursor:pointer;font-size:0.6rem;color:#9ca3af;padding:0;line-height:1">&#x25BC;</button>
@@ -752,7 +1147,7 @@ function taskHTML(t,num,isDone){
       <div class="task-text">${esc(t.text)}</div>
       <div class="task-meta">${timeLabel}<span class="task-tag ${urgency}">${urgency}</span><span class="task-tag block-tag">${blockLabel}</span></div>
     </div>
-    ${arrows}
+    ${arrows}${moveH}
     <button class="task-delete" data-id="${t.id}">\u00D7</button>
   </div>`;
 }
@@ -761,6 +1156,7 @@ function bindTaskEvents(){
   document.querySelectorAll('.task-check').forEach(el=>el.addEventListener('click',e=>{e.stopPropagation();toggleTask(+el.dataset.id);}));
   document.querySelectorAll('.task-delete').forEach(el=>el.addEventListener('click',e=>{e.stopPropagation();deleteTask(+el.dataset.id);}));
   document.querySelectorAll('.task-move-btn').forEach(el=>el.addEventListener('click',e=>{e.stopPropagation();moveTask(+el.dataset.id,+el.dataset.dir);}));
+  document.querySelectorAll('.task-move-date').forEach(el=>el.addEventListener('click',e=>{e.stopPropagation();showMoveTaskModal(+el.dataset.id);}));
 
   // Drag and drop
   const items=document.querySelectorAll('#taskListPending .task-item');
@@ -783,7 +1179,10 @@ function bindTaskEvents(){
 
 /* ═══ CALENDAR ═══ */
 function loadEvents(){return load('events',[]);}
-function saveEvents(ev){save('events',ev);}
+function saveEvents(ev){
+  save('events',ev);
+  syncEventsToDB(ev);
+}
 function loadEventsForDate(ds){return loadEvents().filter(e=>e.date===ds).sort((a,b)=>pTime(a.timeStart||'00:00')-pTime(b.timeStart||'00:00'));}
 
 function renderCalendar(){
@@ -864,7 +1263,6 @@ document.getElementById('btnAddEvent').addEventListener('click',()=>{
   calSelDate=evDate;renderCalendar();renderSV();
 });
 
-// Set default event date to selected calendar date
 document.getElementById('evDate').value=calSelDate;
 
 /* ═══ HISTORY ═══ */
@@ -880,7 +1278,6 @@ function renderHistory(){
     if(st>0){totalPct+=(sd/st)*100;daysData++;}
     if(!doneTasks.length&&!sd)continue;
     html+=`<div class="history-day-group"><div class="history-day-header">${dayLabel} &mdash; Horario: ${sd}/${st} | Tareas: ${doneTasks.length}/${tasks.length}</div>`;
-    // Show schedule items that were checked
     sch.forEach((s,idx)=>{
       if(ch[idx]) html+=`<div class="history-item"><span class="h-check">\u2713</span><span>${s.emoji} ${s.name}</span><span class="h-block">${BLOCK_LABELS[s.cat]||s.cat}</span><span class="h-time">${s.time}</span></div>`;
     });
@@ -901,6 +1298,17 @@ function renderHistory(){
 (function cleanOld(){const n=new Date();Object.keys(localStorage).forEach(k=>{const m=k.match(/(h|tasks|note)-(\d{4}-\d{2}-\d{2})/);if(m&&(n-new Date(m[2]))/864e5>60)localStorage.removeItem(k);});})();
 renderSV();
 setInterval(()=>{if(curView==='viewSchedule'&&selDay===new Date().getDay())renderSV();},60000);
+
+// Async Supabase init
+(async()=>{
+  await migrateToSupabase();
+  await initialSync();
+})();
+
+// Reconnect handler
+window.addEventListener('online',()=>{
+  retryDirty().then(()=>initialSync());
+});
 </script>
 </body>
 </html>
