@@ -1,0 +1,1093 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Mi Horario Semanal</title>
+<style>
+  :root {
+    --exercise: #0d9488;
+    --exercise-bg: #ccfbf1;
+    --work: #2563eb;
+    --work-bg: #dbeafe;
+    --meal: #d97706;
+    --meal-bg: #fef3c7;
+    --reading: #7c3aed;
+    --reading-bg: #ede9fe;
+    --meditation: #059669;
+    --meditation-bg: #d1fae5;
+    --routine: #6b7280;
+    --routine-bg: #f3f4f6;
+    --free: #e11d48;
+    --free-bg: #ffe4e6;
+    --review: #0891b2;
+    --review-bg: #cffafe;
+    --content: #c026d3;
+    --content-bg: #fae8ff;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: #faf9f6;
+    color: #1f2937;
+    min-height: 100vh;
+    padding: 16px 16px 80px;
+  }
+
+  .container { max-width: 600px; margin: 0 auto; }
+
+  /* ── Header ── */
+  header { text-align: center; margin-bottom: 20px; }
+  header h1 { font-size: 1.5rem; font-weight: 700; color: #111827; margin-bottom: 2px; }
+  .date-display { font-size: 0.85rem; color: #6b7280; }
+
+  /* ── Streak badge ── */
+  .streak-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    margin-top: 6px;
+    padding: 4px 12px;
+    background: linear-gradient(135deg, #f59e0b, #ef4444);
+    color: #fff;
+    font-size: 0.75rem;
+    font-weight: 700;
+    border-radius: 20px;
+  }
+  .streak-badge.hidden { display: none; }
+
+  /* ── Bottom nav ── */
+  .bottom-nav {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: #fff;
+    border-top: 1px solid #e5e7eb;
+    display: flex;
+    z-index: 100;
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  .nav-btn {
+    flex: 1;
+    padding: 10px 0 8px;
+    border: none;
+    background: none;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    color: #9ca3af;
+    font-size: 0.65rem;
+    font-weight: 600;
+    transition: color 0.2s;
+  }
+
+  .nav-btn.active { color: #2563eb; }
+  .nav-btn .nav-icon { font-size: 1.3rem; }
+
+  /* ── Day Tabs ── */
+  .tabs {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 16px;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .tab {
+    flex: 1;
+    min-width: 42px;
+    padding: 9px 4px;
+    border: none;
+    background: #e5e7eb;
+    color: #6b7280;
+    font-size: 0.78rem;
+    font-weight: 600;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-align: center;
+  }
+
+  .tab:hover { background: #d1d5db; }
+  .tab.active { background: #111827; color: #fff; }
+  .tab.today { border: 2px solid #2563eb; }
+  .tab.content-day { border: 2px solid var(--content); }
+  .tab.content-day.active { background: var(--content); }
+
+  /* ── Content Monday indicator ── */
+  .content-monday-banner {
+    display: none;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 14px;
+    background: var(--content-bg);
+    border: 1px solid #e879f9;
+    border-radius: 12px;
+    margin-bottom: 14px;
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: #86198f;
+  }
+  .content-monday-banner.visible { display: flex; }
+  .content-monday-banner .toggle-content {
+    margin-left: auto;
+    padding: 4px 10px;
+    border: 1px solid #d946ef;
+    background: #fff;
+    color: #86198f;
+    font-size: 0.72rem;
+    font-weight: 700;
+    border-radius: 6px;
+    cursor: pointer;
+  }
+  .content-monday-banner .toggle-content:hover { background: #fdf4ff; }
+
+  /* ── Progress ── */
+  .progress-section { margin-bottom: 16px; }
+  .progress-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 6px;
+  }
+  .progress-text { font-size: 0.82rem; font-weight: 600; color: #374151; }
+  .progress-bar-bg { height: 7px; background: #e5e7eb; border-radius: 4px; overflow: hidden; }
+  .progress-bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #2563eb, #7c3aed);
+    border-radius: 4px;
+    transition: width 0.4s ease;
+  }
+
+  /* ── Schedule items ── */
+  .schedule-list { display: flex; flex-direction: column; gap: 7px; margin-bottom: 20px; }
+
+  .schedule-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 14px;
+    background: #fff;
+    border-radius: 12px;
+    border-left: 4px solid transparent;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    transition: all 0.2s;
+    cursor: pointer;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+  .schedule-item:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+  .schedule-item.checked { opacity: 0.5; }
+  .schedule-item.checked .activity-name { text-decoration: line-through; }
+
+  .schedule-item[data-cat="exercise"]   { border-left-color: var(--exercise); background: var(--exercise-bg); }
+  .schedule-item[data-cat="work"]       { border-left-color: var(--work); background: var(--work-bg); }
+  .schedule-item[data-cat="meal"]       { border-left-color: var(--meal); background: var(--meal-bg); }
+  .schedule-item[data-cat="reading"]    { border-left-color: var(--reading); background: var(--reading-bg); }
+  .schedule-item[data-cat="meditation"] { border-left-color: var(--meditation); background: var(--meditation-bg); }
+  .schedule-item[data-cat="routine"]    { border-left-color: var(--routine); background: var(--routine-bg); }
+  .schedule-item[data-cat="free"]       { border-left-color: var(--free); background: var(--free-bg); }
+  .schedule-item[data-cat="review"]     { border-left-color: var(--review); background: var(--review-bg); }
+  .schedule-item[data-cat="content"]    { border-left-color: var(--content); background: var(--content-bg); }
+
+  .checkbox-wrapper {
+    flex-shrink: 0;
+    width: 22px;
+    height: 22px;
+    border: 2px solid #9ca3af;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    background: #fff;
+  }
+  .schedule-item.checked .checkbox-wrapper { background: #111827; border-color: #111827; }
+  .check-icon { display: none; color: #fff; font-size: 13px; font-weight: 700; }
+  .schedule-item.checked .check-icon { display: block; }
+
+  .activity-emoji { font-size: 1.2rem; flex-shrink: 0; width: 26px; text-align: center; }
+  .activity-info { flex: 1; min-width: 0; }
+  .activity-name { font-size: 0.9rem; font-weight: 600; color: #111827; }
+  .activity-time { font-size: 0.75rem; color: #6b7280; margin-top: 1px; }
+  .activity-desc { font-size: 0.72rem; color: #9ca3af; margin-top: 2px; font-style: italic; }
+
+  .schedule-item.current { box-shadow: 0 0 0 2px #2563eb, 0 2px 8px rgba(37,99,235,0.15); }
+  .current-badge {
+    display: none;
+    font-size: 0.6rem;
+    font-weight: 700;
+    color: #fff;
+    background: #2563eb;
+    padding: 2px 7px;
+    border-radius: 5px;
+    flex-shrink: 0;
+  }
+  .schedule-item.current .current-badge { display: block; }
+
+  /* ── Actions row ── */
+  .actions { text-align: center; margin-bottom: 20px; }
+  .btn-reset {
+    padding: 8px 20px;
+    border: 2px solid #e5e7eb;
+    background: #fff;
+    color: #6b7280;
+    font-size: 0.8rem;
+    font-weight: 600;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .btn-reset:hover { border-color: #ef4444; color: #ef4444; }
+
+  /* ── Section views ── */
+  .view { display: none; }
+  .view.active { display: block; }
+
+  /* ── Tasks section ── */
+  .section-title {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: #111827;
+    margin-bottom: 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .task-input-row {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 16px;
+  }
+
+  .task-input {
+    flex: 1;
+    padding: 10px 14px;
+    border: 2px solid #e5e7eb;
+    border-radius: 10px;
+    font-size: 0.88rem;
+    font-family: inherit;
+    outline: none;
+    transition: border-color 0.2s;
+    background: #fff;
+  }
+  .task-input:focus { border-color: #2563eb; }
+  .task-input::placeholder { color: #9ca3af; }
+
+  .btn-add-task {
+    padding: 10px 16px;
+    border: none;
+    background: #2563eb;
+    color: #fff;
+    font-size: 0.85rem;
+    font-weight: 700;
+    border-radius: 10px;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: background 0.2s;
+  }
+  .btn-add-task:hover { background: #1d4ed8; }
+
+  .task-category-row {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+  }
+
+  .cat-chip {
+    padding: 5px 12px;
+    border: 1.5px solid #d1d5db;
+    background: #fff;
+    color: #6b7280;
+    font-size: 0.75rem;
+    font-weight: 600;
+    border-radius: 20px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .cat-chip.active { border-color: #2563eb; background: #dbeafe; color: #1e40af; }
+
+  .task-list { display: flex; flex-direction: column; gap: 6px; margin-bottom: 24px; }
+
+  .task-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 11px 14px;
+    background: #fff;
+    border-radius: 10px;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+    transition: all 0.2s;
+  }
+  .task-item.done { opacity: 0.45; }
+  .task-item.done .task-text { text-decoration: line-through; }
+
+  .task-check {
+    flex-shrink: 0;
+    width: 20px;
+    height: 20px;
+    border: 2px solid #d1d5db;
+    border-radius: 5px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #fff;
+    transition: all 0.2s;
+  }
+  .task-item.done .task-check { background: #10b981; border-color: #10b981; }
+  .task-check-icon { display: none; color: #fff; font-size: 11px; font-weight: 700; }
+  .task-item.done .task-check-icon { display: block; }
+
+  .task-text { flex: 1; font-size: 0.88rem; color: #111827; }
+
+  .task-cat-label {
+    font-size: 0.65rem;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 4px;
+    flex-shrink: 0;
+  }
+  .task-cat-label.proactiva { background: #dbeafe; color: #1e40af; }
+  .task-cat-label.reactiva { background: #fef3c7; color: #92400e; }
+  .task-cat-label.urgente { background: #ffe4e6; color: #9f1239; }
+
+  .task-delete {
+    flex-shrink: 0;
+    width: 20px;
+    height: 20px;
+    border: none;
+    background: none;
+    color: #d1d5db;
+    font-size: 1rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+    transition: color 0.2s;
+  }
+  .task-delete:hover { color: #ef4444; }
+
+  .empty-state {
+    text-align: center;
+    padding: 32px 16px;
+    color: #9ca3af;
+    font-size: 0.88rem;
+  }
+  .empty-state .empty-icon { font-size: 2rem; margin-bottom: 8px; }
+
+  /* ── History section ── */
+  .history-day-group { margin-bottom: 20px; }
+  .history-day-header {
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: #6b7280;
+    margin-bottom: 8px;
+    padding-bottom: 4px;
+    border-bottom: 1px solid #e5e7eb;
+  }
+
+  .history-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 0;
+    font-size: 0.85rem;
+    color: #374151;
+  }
+  .history-item .history-check { color: #10b981; font-weight: 700; }
+  .history-item .history-time { color: #9ca3af; font-size: 0.75rem; margin-left: auto; }
+
+  .history-stats {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+  }
+  .stat-card {
+    flex: 1;
+    background: #fff;
+    border-radius: 12px;
+    padding: 14px;
+    text-align: center;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+  }
+  .stat-number { font-size: 1.5rem; font-weight: 800; color: #111827; }
+  .stat-label { font-size: 0.7rem; color: #6b7280; font-weight: 600; margin-top: 2px; }
+
+  /* ── Notes section ── */
+  .daily-note {
+    margin-top: 16px;
+    margin-bottom: 20px;
+  }
+  .daily-note textarea {
+    width: 100%;
+    min-height: 80px;
+    padding: 12px;
+    border: 2px solid #e5e7eb;
+    border-radius: 10px;
+    font-family: inherit;
+    font-size: 0.85rem;
+    resize: vertical;
+    outline: none;
+    transition: border-color 0.2s;
+    background: #fff;
+  }
+  .daily-note textarea:focus { border-color: #7c3aed; }
+  .daily-note label {
+    display: block;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #6b7280;
+    margin-bottom: 6px;
+  }
+
+  /* ── Responsive ── */
+  @media (max-width: 480px) {
+    body { padding: 12px 12px 80px; }
+    header h1 { font-size: 1.3rem; }
+    .schedule-item { padding: 10px 12px; gap: 8px; }
+    .activity-name { font-size: 0.85rem; }
+    .tab { padding: 8px 3px; font-size: 0.72rem; }
+  }
+</style>
+</head>
+<body>
+
+<div class="container">
+  <header>
+    <h1 id="pageTitle">Mi Horario</h1>
+    <div class="date-display" id="dateDisplay"></div>
+    <div class="streak-badge hidden" id="streakBadge">
+      <span>&#x1F525;</span>
+      <span id="streakCount">0</span> dias de racha
+    </div>
+  </header>
+
+  <!-- ═══ VIEW: HORARIO ═══ -->
+  <div class="view active" id="viewSchedule">
+    <div class="tabs" id="tabs"></div>
+
+    <div class="content-monday-banner" id="contentBanner">
+      <span>&#x1F3AC;</span>
+      <span>Lunes de Contenido</span>
+      <button class="toggle-content" id="toggleContentBtn">Cambiar</button>
+    </div>
+
+    <div class="progress-section">
+      <div class="progress-header">
+        <span class="progress-text" id="progressText">0 / 0</span>
+      </div>
+      <div class="progress-bar-bg">
+        <div class="progress-bar-fill" id="progressBar" style="width:0%"></div>
+      </div>
+    </div>
+
+    <div class="schedule-list" id="scheduleList"></div>
+
+    <div class="daily-note">
+      <label>&#x1F4DD; Notas del dia</label>
+      <textarea id="dailyNoteArea" placeholder="Reflexiones, ideas, recordatorios..."></textarea>
+    </div>
+
+    <div class="actions">
+      <button class="btn-reset" id="btnReset">Resetear dia</button>
+    </div>
+  </div>
+
+  <!-- ═══ VIEW: TAREAS ═══ -->
+  <div class="view" id="viewTasks">
+    <div class="section-title">&#x1F4CB; Tareas del dia</div>
+
+    <div class="task-input-row">
+      <input class="task-input" id="taskInput" type="text" placeholder="Nueva tarea..." maxlength="200">
+      <button class="btn-add-task" id="btnAddTask">+</button>
+    </div>
+
+    <div class="task-category-row" id="taskCatRow">
+      <button class="cat-chip active" data-cat="proactiva">Proactiva</button>
+      <button class="cat-chip" data-cat="reactiva">Reactiva</button>
+      <button class="cat-chip" data-cat="urgente">Urgente</button>
+    </div>
+
+    <div id="pendingTasksLabel" class="section-title" style="font-size:0.85rem; margin-top:8px;">Pendientes</div>
+    <div class="task-list" id="taskListPending"></div>
+
+    <div id="doneTasksLabel" class="section-title" style="font-size:0.85rem; margin-top:16px; color:#6b7280;">Completadas hoy</div>
+    <div class="task-list" id="taskListDone"></div>
+  </div>
+
+  <!-- ═══ VIEW: HISTORIAL ═══ -->
+  <div class="view" id="viewHistory">
+    <div class="section-title">&#x1F4CA; Resumen</div>
+
+    <div class="history-stats">
+      <div class="stat-card">
+        <div class="stat-number" id="statTotalTasks">0</div>
+        <div class="stat-label">Tareas completadas (7 dias)</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-number" id="statStreak">0</div>
+        <div class="stat-label">Dias de racha</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-number" id="statAvgSchedule">0%</div>
+        <div class="stat-label">Horario promedio (7 dias)</div>
+      </div>
+    </div>
+
+    <div class="section-title" style="font-size:0.9rem; margin-top:8px;">&#x1F4C5; Historial de tareas</div>
+    <div id="historyList"></div>
+
+    <div class="empty-state" id="historyEmpty" style="display:none">
+      <div class="empty-icon">&#x1F4AD;</div>
+      Aun no hay historial. Completa tareas para verlas aqui.
+    </div>
+  </div>
+</div>
+
+<!-- ── Bottom Nav ── -->
+<nav class="bottom-nav">
+  <button class="nav-btn active" data-view="viewSchedule">
+    <span class="nav-icon">&#x1F4C5;</span>
+    Horario
+  </button>
+  <button class="nav-btn" data-view="viewTasks">
+    <span class="nav-icon">&#x2705;</span>
+    Tareas
+  </button>
+  <button class="nav-btn" data-view="viewHistory">
+    <span class="nav-icon">&#x1F4CA;</span>
+    Historial
+  </button>
+</nav>
+
+<script>
+/* ══════════════════════════════════════
+   DATA & CONSTANTS
+   ══════════════════════════════════════ */
+
+const DAYS_SHORT = ['Dom','Lun','Mar','Mie','Jue','Vie','Sab'];
+
+const weekdaySchedule = [
+  { time: '5:00 - 7:00',   name: 'Gimnasio',               emoji: '\u{1F3CB}', cat: 'exercise' },
+  { time: '7:00 - 8:30',   name: 'Bano + Desayuno',        emoji: '\u{1F373}', cat: 'routine' },
+  { time: '8:30 - 14:00',  name: 'Trabajo (bloque 1)',      emoji: '\u{1F4BB}', cat: 'work' },
+  { time: '14:00 - 15:00', name: 'Comida',                  emoji: '\u{1F35D}', cat: 'meal' },
+  { time: '15:00 - 20:00', name: 'Trabajo (bloque 2)',      emoji: '\u{1F4BC}', cat: 'work' },
+  { time: '20:00 - 21:00', name: 'Cena + desconexion',      emoji: '\u{1F4F5}', cat: 'meal' },
+  { time: '21:00 - 22:00', name: 'Lectura (luz amarilla)',  emoji: '\u{1F4D6}', cat: 'reading' },
+  { time: '22:00 - 22:30', name: 'Prepararse para dormir', emoji: '\u{1F319}', cat: 'routine' },
+];
+
+const contentMondaySchedule = [
+  { time: '5:00 - 7:00',   name: 'Gimnasio',                          emoji: '\u{1F3CB}', cat: 'exercise' },
+  { time: '7:00 - 8:30',   name: 'Bano + Desayuno',                   emoji: '\u{1F373}', cat: 'routine' },
+  { time: '8:30 - 10:00',  name: 'Follow-ups con clientes',           emoji: '\u{1F4E9}', cat: 'work', desc: 'Revisar pendientes, dar seguimiento a cada cliente' },
+  { time: '10:00 - 14:00', name: 'Crear y grabar contenido',          emoji: '\u{1F3AC}', cat: 'content', desc: 'Grabar videos, escribir posts, crear material' },
+  { time: '14:00 - 15:00', name: 'Comida',                            emoji: '\u{1F35D}', cat: 'meal' },
+  { time: '15:00 - 18:00', name: 'Editar contenido',                  emoji: '\u{1F3AC}', cat: 'content', desc: 'Edicion de video, imagenes, textos' },
+  { time: '18:00 - 20:00', name: 'Calendarizar y programar',          emoji: '\u{1F4C5}', cat: 'content', desc: 'Programar publicaciones para las proximas 2 semanas' },
+  { time: '20:00 - 21:00', name: 'Cena + desconexion',                emoji: '\u{1F4F5}', cat: 'meal' },
+  { time: '21:00 - 22:00', name: 'Lectura (luz amarilla)',            emoji: '\u{1F4D6}', cat: 'reading' },
+  { time: '22:00 - 22:30', name: 'Prepararse para dormir',           emoji: '\u{1F319}', cat: 'routine' },
+];
+
+const saturdaySchedule = [
+  { time: '5:00 - 7:00',   name: 'Correr / Bicicleta',     emoji: '\u{1F6B4}', cat: 'exercise' },
+  { time: '7:00 - 8:30',   name: 'Bano + Desayuno',        emoji: '\u{1F373}', cat: 'routine' },
+  { time: '8:30 - 14:00',  name: 'Trabajo',                 emoji: '\u{1F4BB}', cat: 'work' },
+  { time: '14:00 - 15:00', name: 'Comida',                  emoji: '\u{1F35D}', cat: 'meal' },
+  { time: '15:00 - 16:00', name: 'Resumen semanal + plan', emoji: '\u{1F4CB}', cat: 'review', desc: 'Que hice esta semana? Que es lo mas importante la proxima?' },
+  { time: '16:00 - 20:00', name: 'Tiempo libre',            emoji: '\u{1F389}', cat: 'free' },
+  { time: '20:00 - 21:00', name: 'Cena',                    emoji: '\u{1F37D}', cat: 'meal' },
+  { time: '21:00 - 22:00', name: 'Lectura',                 emoji: '\u{1F4D6}', cat: 'reading' },
+  { time: '22:00 - 22:30', name: 'Prepararse para dormir', emoji: '\u{1F319}', cat: 'routine' },
+];
+
+const sundaySchedule = [
+  { time: '8:00 - 8:30',   name: 'Despertar tranquilo',    emoji: '\u{2600}',  cat: 'routine' },
+  { time: '8:30 - 13:00',  name: 'Naturaleza + meditacion',emoji: '\u{1F3D5}', cat: 'meditation', desc: 'Dinamos, Marquesa o parque: meditar, reflexionar, visualizar' },
+  { time: '13:00 - 14:00', name: 'Reenfoque personal',     emoji: '\u{1F9ED}', cat: 'review', desc: 'Como me siento? Hacia donde voy? Que quiero?' },
+  { time: '14:00 - 15:00', name: 'Comida',                  emoji: '\u{1F35D}', cat: 'meal' },
+  { time: '15:00 - 20:00', name: 'Tiempo libre',            emoji: '\u{1F389}', cat: 'free' },
+  { time: '20:00 - 21:00', name: 'Cena',                    emoji: '\u{1F37D}', cat: 'meal' },
+  { time: '21:00 - 22:00', name: 'Lectura',                 emoji: '\u{1F4D6}', cat: 'reading' },
+  { time: '22:00 - 22:30', name: 'Prepararse para dormir', emoji: '\u{1F319}', cat: 'routine' },
+];
+
+
+/* ══════════════════════════════════════
+   HELPERS
+   ══════════════════════════════════════ */
+
+function todayStr() { return new Date().toISOString().slice(0, 10); }
+
+function getWeekNumber(d) {
+  const oneJan = new Date(d.getFullYear(), 0, 1);
+  return Math.ceil(((d - oneJan) / 86400000 + oneJan.getDay() + 1) / 7);
+}
+
+function isContentMonday(dayIndex) {
+  if (dayIndex !== 1) return false;
+  // Check manual override first
+  const override = localStorage.getItem('content-monday-' + todayStr());
+  if (override === 'yes') return true;
+  if (override === 'no') return false;
+  // Default: even weeks are content Mondays
+  return getWeekNumber(new Date()) % 2 === 0;
+}
+
+function getScheduleForDay(dayIndex) {
+  if (dayIndex === 0) return sundaySchedule;
+  if (dayIndex === 6) return saturdaySchedule;
+  if (dayIndex === 1 && isContentMonday(1)) return contentMondaySchedule;
+  return weekdaySchedule;
+}
+
+function storageKey(prefix, dayIndex) {
+  return `${prefix}-${todayStr()}-${dayIndex}`;
+}
+
+function loadJSON(key, fallback) {
+  const d = localStorage.getItem(key);
+  return d ? JSON.parse(d) : fallback;
+}
+
+function saveJSON(key, data) {
+  localStorage.setItem(key, JSON.stringify(data));
+}
+
+function parseTime(t) {
+  const m = t.match(/(\d{1,2}):(\d{2})/);
+  return m ? parseInt(m[1]) * 60 + parseInt(m[2]) : 0;
+}
+
+function getCurrentActivityIndex(schedule) {
+  const now = new Date();
+  const mins = now.getHours() * 60 + now.getMinutes();
+  for (let i = 0; i < schedule.length; i++) {
+    const parts = schedule[i].time.split(' - ');
+    const start = parseTime(parts[0]);
+    const end = parts[1] ? parseTime(parts[1]) : start + 30;
+    if (mins >= start && mins < end) return i;
+  }
+  return -1;
+}
+
+
+/* ══════════════════════════════════════
+   STATE
+   ══════════════════════════════════════ */
+
+let selectedDay = new Date().getDay();
+let currentView = 'viewSchedule';
+let selectedTaskCat = 'proactiva';
+
+
+/* ══════════════════════════════════════
+   NAVIGATION
+   ══════════════════════════════════════ */
+
+document.querySelectorAll('.nav-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    currentView = btn.dataset.view;
+    document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+    document.getElementById(currentView).classList.add('active');
+
+    const titles = { viewSchedule: 'Mi Horario', viewTasks: 'Mis Tareas', viewHistory: 'Mi Progreso' };
+    document.getElementById('pageTitle').textContent = titles[currentView];
+
+    if (currentView === 'viewHistory') renderHistory();
+    if (currentView === 'viewTasks') renderTasks();
+  });
+});
+
+
+/* ══════════════════════════════════════
+   SCHEDULE VIEW
+   ══════════════════════════════════════ */
+
+function renderTabs() {
+  const el = document.getElementById('tabs');
+  const today = new Date().getDay();
+  const order = [1, 2, 3, 4, 5, 6, 0];
+
+  el.innerHTML = order.map(d => {
+    const cls = [
+      'tab',
+      d === selectedDay ? 'active' : '',
+      d === today ? 'today' : '',
+      d === 1 && isContentMonday(1) && d === selectedDay ? 'content-day' : ''
+    ].filter(Boolean).join(' ');
+    return `<button class="${cls}" data-day="${d}">${DAYS_SHORT[d]}</button>`;
+  }).join('');
+
+  el.querySelectorAll('.tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      selectedDay = parseInt(tab.dataset.day);
+      renderScheduleView();
+    });
+  });
+}
+
+function renderContentBanner() {
+  const banner = document.getElementById('contentBanner');
+  if (selectedDay === 1) {
+    banner.classList.toggle('visible', isContentMonday(1));
+  } else {
+    banner.classList.remove('visible');
+  }
+}
+
+function renderDate() {
+  const opts = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+  document.getElementById('dateDisplay').textContent = new Date().toLocaleDateString('es-MX', opts);
+}
+
+function renderSchedule() {
+  const schedule = getScheduleForDay(selectedDay);
+  const checks = loadJSON(storageKey('horario', selectedDay), {});
+  const today = new Date().getDay();
+  const curIdx = (selectedDay === today) ? getCurrentActivityIndex(schedule) : -1;
+  const el = document.getElementById('scheduleList');
+
+  el.innerHTML = schedule.map((item, i) => {
+    const isChecked = checks[i] ? 'checked' : '';
+    const isCurrent = i === curIdx ? 'current' : '';
+    const descHTML = item.desc ? `<div class="activity-desc">${item.desc}</div>` : '';
+    return `
+      <div class="schedule-item ${isChecked} ${isCurrent}" data-cat="${item.cat}" data-index="${i}">
+        <div class="checkbox-wrapper"><span class="check-icon">\u2713</span></div>
+        <span class="activity-emoji">${item.emoji}</span>
+        <div class="activity-info">
+          <div class="activity-name">${item.name}</div>
+          <div class="activity-time">${item.time}</div>
+          ${descHTML}
+        </div>
+        <span class="current-badge">AHORA</span>
+      </div>`;
+  }).join('');
+
+  el.querySelectorAll('.schedule-item').forEach(item => {
+    item.addEventListener('click', () => {
+      const idx = parseInt(item.dataset.index);
+      const checks = loadJSON(storageKey('horario', selectedDay), {});
+      checks[idx] = !checks[idx];
+      saveJSON(storageKey('horario', selectedDay), checks);
+      renderScheduleView();
+    });
+  });
+}
+
+function renderProgress() {
+  const schedule = getScheduleForDay(selectedDay);
+  const checks = loadJSON(storageKey('horario', selectedDay), {});
+  const total = schedule.length;
+  const done = Object.values(checks).filter(Boolean).length;
+  const pct = total > 0 ? Math.round((done / total) * 100) : 0;
+
+  document.getElementById('progressText').textContent = `${done} / ${total} completadas`;
+  document.getElementById('progressBar').style.width = pct + '%';
+}
+
+function renderNote() {
+  const key = 'note-' + todayStr();
+  const area = document.getElementById('dailyNoteArea');
+  area.value = localStorage.getItem(key) || '';
+}
+
+function renderStreak() {
+  const streak = calcStreak();
+  const badge = document.getElementById('streakBadge');
+  if (streak > 0) {
+    badge.classList.remove('hidden');
+    document.getElementById('streakCount').textContent = streak;
+  } else {
+    badge.classList.add('hidden');
+  }
+}
+
+function calcStreak() {
+  let streak = 0;
+  const d = new Date();
+  // Start from yesterday (today might not be complete yet)
+  d.setDate(d.getDate() - 1);
+  for (let i = 0; i < 365; i++) {
+    const dateStr = d.toISOString().slice(0, 10);
+    const dayIdx = d.getDay();
+    const schedule = getScheduleForDayAndDate(dayIdx, d);
+    const checks = loadJSON(`horario-${dateStr}-${dayIdx}`, {});
+    const total = schedule.length;
+    const done = Object.values(checks).filter(Boolean).length;
+    if (total > 0 && done === total) {
+      streak++;
+    } else {
+      break;
+    }
+    d.setDate(d.getDate() - 1);
+  }
+  return streak;
+}
+
+function getScheduleForDayAndDate(dayIdx, date) {
+  if (dayIdx === 0) return sundaySchedule;
+  if (dayIdx === 6) return saturdaySchedule;
+  // For historical dates, just use weekday schedule (can't know content monday reliably for past)
+  return weekdaySchedule;
+}
+
+function renderScheduleView() {
+  renderTabs();
+  renderContentBanner();
+  renderDate();
+  renderSchedule();
+  renderProgress();
+  renderNote();
+  renderStreak();
+}
+
+// Note autosave
+document.getElementById('dailyNoteArea').addEventListener('input', (e) => {
+  localStorage.setItem('note-' + todayStr(), e.target.value);
+});
+
+// Reset button
+document.getElementById('btnReset').addEventListener('click', () => {
+  if (confirm('Resetear todas las actividades de este dia?')) {
+    saveJSON(storageKey('horario', selectedDay), {});
+    renderScheduleView();
+  }
+});
+
+// Content Monday toggle
+document.getElementById('toggleContentBtn').addEventListener('click', () => {
+  const key = 'content-monday-' + todayStr();
+  const current = isContentMonday(1);
+  localStorage.setItem(key, current ? 'no' : 'yes');
+  renderScheduleView();
+});
+
+
+/* ══════════════════════════════════════
+   TASKS VIEW
+   ══════════════════════════════════════ */
+
+function getTasksKey() { return 'tasks-' + todayStr(); }
+
+function loadTasks() { return loadJSON(getTasksKey(), []); }
+
+function saveTasks(tasks) { saveJSON(getTasksKey(), tasks); }
+
+function addTask(text, cat) {
+  if (!text.trim()) return;
+  const tasks = loadTasks();
+  tasks.push({
+    id: Date.now(),
+    text: text.trim(),
+    cat: cat,
+    done: false,
+    createdAt: new Date().toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' }),
+    completedAt: null
+  });
+  saveTasks(tasks);
+  renderTasks();
+}
+
+function toggleTask(id) {
+  const tasks = loadTasks();
+  const task = tasks.find(t => t.id === id);
+  if (task) {
+    task.done = !task.done;
+    task.completedAt = task.done ? new Date().toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' }) : null;
+  }
+  saveTasks(tasks);
+  renderTasks();
+}
+
+function deleteTask(id) {
+  const tasks = loadTasks().filter(t => t.id !== id);
+  saveTasks(tasks);
+  renderTasks();
+}
+
+function renderTasks() {
+  const tasks = loadTasks();
+  const pending = tasks.filter(t => !t.done);
+  const done = tasks.filter(t => t.done);
+
+  const pendingEl = document.getElementById('taskListPending');
+  const doneEl = document.getElementById('taskListDone');
+
+  if (pending.length === 0 && done.length === 0) {
+    pendingEl.innerHTML = `<div class="empty-state"><div class="empty-icon">\u{1F4DD}</div>Agrega tu primera tarea del dia</div>`;
+    doneEl.innerHTML = '';
+    document.getElementById('doneTasksLabel').style.display = 'none';
+    document.getElementById('pendingTasksLabel').style.display = 'none';
+    return;
+  }
+
+  document.getElementById('pendingTasksLabel').style.display = pending.length ? 'flex' : 'none';
+  document.getElementById('doneTasksLabel').style.display = done.length ? 'flex' : 'none';
+
+  pendingEl.innerHTML = pending.map(t => taskHTML(t)).join('');
+  doneEl.innerHTML = done.map(t => taskHTML(t)).join('');
+
+  document.querySelectorAll('.task-check').forEach(el => {
+    el.addEventListener('click', (e) => {
+      e.stopPropagation();
+      toggleTask(parseInt(el.dataset.id));
+    });
+  });
+  document.querySelectorAll('.task-delete').forEach(el => {
+    el.addEventListener('click', (e) => {
+      e.stopPropagation();
+      deleteTask(parseInt(el.dataset.id));
+    });
+  });
+}
+
+function taskHTML(t) {
+  return `
+    <div class="task-item ${t.done ? 'done' : ''}">
+      <div class="task-check" data-id="${t.id}"><span class="task-check-icon">\u2713</span></div>
+      <span class="task-text">${escapeHTML(t.text)}</span>
+      <span class="task-cat-label ${t.cat}">${t.cat}</span>
+      <button class="task-delete" data-id="${t.id}">\u00D7</button>
+    </div>`;
+}
+
+function escapeHTML(s) {
+  const div = document.createElement('div');
+  div.textContent = s;
+  return div.innerHTML;
+}
+
+// Task category chips
+document.querySelectorAll('.cat-chip').forEach(chip => {
+  chip.addEventListener('click', () => {
+    document.querySelectorAll('.cat-chip').forEach(c => c.classList.remove('active'));
+    chip.classList.add('active');
+    selectedTaskCat = chip.dataset.cat;
+  });
+});
+
+// Add task
+document.getElementById('btnAddTask').addEventListener('click', () => {
+  const input = document.getElementById('taskInput');
+  addTask(input.value, selectedTaskCat);
+  input.value = '';
+  input.focus();
+});
+
+document.getElementById('taskInput').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') {
+    const input = document.getElementById('taskInput');
+    addTask(input.value, selectedTaskCat);
+    input.value = '';
+  }
+});
+
+
+/* ══════════════════════════════════════
+   HISTORY VIEW
+   ══════════════════════════════════════ */
+
+function renderHistory() {
+  const historyEl = document.getElementById('historyList');
+  const emptyEl = document.getElementById('historyEmpty');
+  let totalDone = 0;
+  let totalSchedulePct = 0;
+  let daysWithData = 0;
+  let html = '';
+
+  // Last 7 days
+  for (let i = 0; i < 7; i++) {
+    const d = new Date();
+    d.setDate(d.getDate() - i);
+    const dateStr = d.toISOString().slice(0, 10);
+    const dayIdx = d.getDay();
+    const opts = { weekday: 'long', day: 'numeric', month: 'short' };
+    const dayLabel = i === 0 ? 'Hoy' : i === 1 ? 'Ayer' : d.toLocaleDateString('es-MX', opts);
+
+    const tasks = loadJSON('tasks-' + dateStr, []);
+    const doneTasks = tasks.filter(t => t.done);
+    totalDone += doneTasks.length;
+
+    const schedule = getScheduleForDayAndDate(dayIdx, d);
+    const checks = loadJSON(`horario-${dateStr}-${dayIdx}`, {});
+    const schedTotal = schedule.length;
+    const schedDone = Object.values(checks).filter(Boolean).length;
+    if (schedTotal > 0) {
+      totalSchedulePct += (schedDone / schedTotal) * 100;
+      daysWithData++;
+    }
+
+    if (doneTasks.length === 0 && schedTotal === 0) continue;
+
+    html += `<div class="history-day-group">
+      <div class="history-day-header">${dayLabel} &mdash; Horario: ${schedDone}/${schedTotal} | Tareas: ${doneTasks.length}/${tasks.length}</div>`;
+
+    doneTasks.forEach(t => {
+      html += `<div class="history-item">
+        <span class="history-check">\u2713</span>
+        <span>${escapeHTML(t.text)}</span>
+        <span class="history-time">${t.completedAt || ''}</span>
+      </div>`;
+    });
+
+    html += '</div>';
+  }
+
+  if (!html) {
+    emptyEl.style.display = 'block';
+    historyEl.innerHTML = '';
+  } else {
+    emptyEl.style.display = 'none';
+    historyEl.innerHTML = html;
+  }
+
+  document.getElementById('statTotalTasks').textContent = totalDone;
+  document.getElementById('statStreak').textContent = calcStreak();
+  document.getElementById('statAvgSchedule').textContent = daysWithData > 0
+    ? Math.round(totalSchedulePct / daysWithData) + '%'
+    : '0%';
+}
+
+
+/* ══════════════════════════════════════
+   CLEANUP & INIT
+   ══════════════════════════════════════ */
+
+function cleanOldData() {
+  const now = new Date();
+  Object.keys(localStorage).forEach(key => {
+    const m = key.match(/(horario|tasks|note)-(\d{4}-\d{2}-\d{2})/);
+    if (!m) return;
+    const diff = (now - new Date(m[2])) / 86400000;
+    if (diff > 30) localStorage.removeItem(key);
+  });
+}
+
+cleanOldData();
+renderScheduleView();
+
+// Auto-refresh current activity every minute
+setInterval(() => {
+  if (currentView === 'viewSchedule' && selectedDay === new Date().getDay()) {
+    renderSchedule();
+  }
+}, 60000);
+</script>
+</body>
+</html>

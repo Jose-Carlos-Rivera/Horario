@@ -1,0 +1,6 @@
+# Ignore everything
+*
+
+# Except the horario app
+!horario.html
+!.gitignore
